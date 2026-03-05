@@ -212,7 +212,6 @@ func (m *KidMutator) Mutate(header, payload string) ([]MutationResult, error) {
 		prefix := strings.Repeat("../", i)
 		traversals = append(traversals, prefix+"dev/null")
 	}
-	traversals = append(traversals, "1' UNION SELECT 'key'--", "f' OR 1=1--")
 
 	var results []MutationResult
 	for _, kid := range traversals {

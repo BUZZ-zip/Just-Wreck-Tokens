@@ -335,19 +335,19 @@ func main() {
 			}
 		}
 
-			// Also try the original JKU from the input token.
-			var originalHeader map[string]interface{}
-			if err := json.Unmarshal([]byte(header), &originalHeader); err == nil {
-				if originalJku, ok := originalHeader["jku"].(string); ok && originalJku != "" {
-					jkuMutOrig := &JkuMutator{CustomPayload: payloadCompact, JkuURL: originalJku, SigningKey: signingKey}
-					if res, mErr := jkuMutOrig.Mutate(header, originalPayload); mErr == nil {
-						for i := range res {
-							res[i].Label = "JKU (Original site endpoint)"
-						}
-						allResults = append(allResults, res...)
+		// Also try the original JKU from the input token.
+		var originalHeader map[string]interface{}
+		if err := json.Unmarshal([]byte(header), &originalHeader); err == nil {
+			if originalJku, ok := originalHeader["jku"].(string); ok && originalJku != "" {
+				jkuMutOrig := &JkuMutator{CustomPayload: payloadCompact, JkuURL: originalJku, SigningKey: signingKey}
+				if res, mErr := jkuMutOrig.Mutate(header, originalPayload); mErr == nil {
+					for i := range res {
+						res[i].Label = "JKU (Original site endpoint)"
 					}
+					allResults = append(allResults, res...)
 				}
 			}
+		}
 	}
 
 	if *attackKID || *attackAll {

