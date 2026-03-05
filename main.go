@@ -61,7 +61,9 @@ func main() {
 	verbose := flag.Bool("v", false, "Verbose mode")
 
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "\nUsage: justwt -jwt <TOKEN> -payload '<JSON>' -url <URL> <attacks> [options]\n\n")
+		printBanner()
+		fmt.Fprintf(os.Stderr, "\n%s%sAuthor: buzz | Version: v1.0%s\n\n", BrightPpl, Bold, Reset)
+		fmt.Fprintf(os.Stderr, "Usage: justwt -jwt <TOKEN> -payload '<JSON>' -url <URL> <attacks> [options]\n\n")
 		fmt.Fprintf(os.Stderr, "%s[REQUIRED]%s\n", Bold, Reset)
 		fmt.Fprintf(os.Stderr, "  -jwt <TOKEN>       JWT token to test\n")
 		fmt.Fprintf(os.Stderr, "  -payload '<JSON>'  JSON payload to inject\n")
@@ -88,9 +90,6 @@ func main() {
 
 	flag.Parse()
 
-	printBanner()
-	fmt.Fprintf(os.Stdout, "\n%s%sAuthor: buzz | Version: v1.0%s\n\n", BrightPpl, Bold, Reset)
-
 	if *jwtInput == "" || *payloadInput == "" || *targetURL == "" {
 		flag.Usage()
 		fmt.Fprintf(os.Stderr, "\n%s[!] Error:%s Missing required parameters\n", Yellow, Reset)
@@ -106,6 +105,9 @@ func main() {
 		fmt.Fprintf(os.Stderr, "\n")
 		os.Exit(1)
 	}
+
+	printBanner()
+	fmt.Fprintf(os.Stdout, "\n%s%sAuthor: buzz | Version: v1.0%s\n\n", BrightPpl, Bold, Reset)
 
 	anyAttack := *attackAll || *attackNone || *attackJWK || *attackJKU || *attackKID || *attackAlg || *attackBrute || *attackPayload
 	if !anyAttack {
